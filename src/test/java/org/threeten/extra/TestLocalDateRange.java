@@ -51,6 +51,8 @@ import java.util.stream.Collectors;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.Range;
+
 /**
  * Test date range.
  */
@@ -398,44 +400,67 @@ public class TestLocalDateRange {
     Object[][] data_encloses() {
         return new Object[][] {
             // before start
-            { DATE_2012_07_01, DATE_2012_07_27, false, false }, { DATE_2012_07_01, DATE_2012_07_28, false, true },
+            { DATE_2012_07_01, DATE_2012_07_27, false, false, false },
+            { DATE_2012_07_01, DATE_2012_07_28, false, true, true },
             // before end
-            { DATE_2012_07_27, DATE_2012_07_30, false, false }, { DATE_2012_07_28, DATE_2012_07_30, true, false },
-            { DATE_2012_07_29, DATE_2012_07_30, true, false },
+            { DATE_2012_07_27, DATE_2012_07_30, false, false, true },
+            { DATE_2012_07_28, DATE_2012_07_30, true, false, true },
+            { DATE_2012_07_29, DATE_2012_07_30, true, false, true },
             // same end
-            { DATE_2012_07_27, DATE_2012_07_31, false, false }, { DATE_2012_07_28, DATE_2012_07_31, true, false },
-            { DATE_2012_07_29, DATE_2012_07_31, true, false }, { DATE_2012_07_30, DATE_2012_07_31, true, false },
+            { DATE_2012_07_27, DATE_2012_07_31, false, false, true },
+            { DATE_2012_07_28, DATE_2012_07_31, true, false, true },
+            { DATE_2012_07_29, DATE_2012_07_31, true, false, true },
+            { DATE_2012_07_30, DATE_2012_07_31, true, false, true },
             // past end
-            { DATE_2012_07_27, DATE_2012_08_01, false, false }, { DATE_2012_07_28, DATE_2012_08_01, false, false },
-            { DATE_2012_07_29, DATE_2012_08_01, false, false }, { DATE_2012_07_30, DATE_2012_08_01, false, false },
+            { DATE_2012_07_27, DATE_2012_08_01, false, false, true },
+            { DATE_2012_07_28, DATE_2012_08_01, false, false, true },
+            { DATE_2012_07_29, DATE_2012_08_01, false, false, true },
+            { DATE_2012_07_30, DATE_2012_08_01, false, false, true },
             // start past end
-            { DATE_2012_07_31, DATE_2012_08_01, false, true }, { DATE_2012_07_31, DATE_2012_08_31, false, true },
+            { DATE_2012_07_31, DATE_2012_08_01, false, true, true },
+            { DATE_2012_07_31, DATE_2012_08_31, false, true, true },
+            { DATE_2012_08_01, DATE_2012_08_31, false, false, false },
             // empty
-            { DATE_2012_07_27, DATE_2012_07_27, false, false }, { DATE_2012_07_28, DATE_2012_07_28, true, true },
-            { DATE_2012_07_29, DATE_2012_07_29, true, false }, { DATE_2012_07_30, DATE_2012_07_30, true, false },
-            { DATE_2012_07_31, DATE_2012_07_31, false, true }, { DATE_2012_08_31, DATE_2012_08_31, false, false },
+            { DATE_2012_07_27, DATE_2012_07_27, false, false, false },
+            { DATE_2012_07_28, DATE_2012_07_28, true, true, true },
+            { DATE_2012_07_29, DATE_2012_07_29, true, false, true },
+            { DATE_2012_07_30, DATE_2012_07_30, true, false, true },
+            { DATE_2012_07_31, DATE_2012_07_31, true, true, true },
+            { DATE_2012_08_31, DATE_2012_08_31, false, false, false },
             // min
-            { LocalDate.MIN, DATE_2012_07_27, false, false }, { LocalDate.MIN, DATE_2012_07_28, false, true },
-            { LocalDate.MIN, DATE_2012_07_29, false, false }, { LocalDate.MIN, DATE_2012_07_30, false, false },
-            { LocalDate.MIN, DATE_2012_07_31, false, false }, { LocalDate.MIN, DATE_2012_08_01, false, false },
-            { LocalDate.MIN, LocalDate.MAX, false, false },
+            { LocalDate.MIN, DATE_2012_07_27, false, false, false },
+            { LocalDate.MIN, DATE_2012_07_28, false, true, true },
+            { LocalDate.MIN, DATE_2012_07_29, false, false, true },
+            { LocalDate.MIN, DATE_2012_07_30, false, false, true },
+            { LocalDate.MIN, DATE_2012_07_31, false, false, true },
+            { LocalDate.MIN, DATE_2012_08_01, false, false, true },
+            { LocalDate.MIN, LocalDate.MAX, false, false, true },
             // max
-            { DATE_2012_07_27, LocalDate.MAX, false, false }, { DATE_2012_07_28, LocalDate.MAX, false, false },
-            { DATE_2012_07_29, LocalDate.MAX, false, false }, { DATE_2012_07_30, LocalDate.MAX, false, false },
-            { DATE_2012_07_31, LocalDate.MAX, false, true }, { DATE_2012_08_01, LocalDate.MAX, false, false },
+            { DATE_2012_07_27, LocalDate.MAX, false, false, true },
+            { DATE_2012_07_28, LocalDate.MAX, false, false, true },
+            { DATE_2012_07_29, LocalDate.MAX, false, false, true },
+            { DATE_2012_07_30, LocalDate.MAX, false, false, true },
+            { DATE_2012_07_31, LocalDate.MAX, false, true, true },
+            { DATE_2012_08_01, LocalDate.MAX, false, false, false },
         };
     }
 
     @Test(dataProvider = "encloses")
-    public void test_encloses(LocalDate start, LocalDate end, boolean isEnclosedBy, boolean abuts) {
+    public void test_encloses(LocalDate start, LocalDate end, boolean isEnclosedBy, boolean abuts, boolean isConnected) {
         LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_31);
         assertEquals(test.encloses(LocalDateRange.of(start, end)), isEnclosedBy);
     }
 
     @Test(dataProvider = "encloses")
-    public void test_abuts(LocalDate start, LocalDate end, boolean isEnclosedBy, boolean abuts) {
+    public void test_abuts(LocalDate start, LocalDate end, boolean isEnclosedBy, boolean abuts, boolean isConnected) {
         LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_31);
         assertEquals(test.abuts(LocalDateRange.of(start, end)), abuts);
+    }
+
+    @Test(dataProvider = "encloses")
+    public void test_isConnected(LocalDate start, LocalDate end, boolean isEnclosedBy, boolean abuts, boolean isConnected) {
+        LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_31);
+        assertEquals(test.isConnected(LocalDateRange.of(start, end)), isConnected);
     }
 
     public void test_encloses_max() {
@@ -448,95 +473,115 @@ public class TestLocalDateRange {
         assertEquals(test.encloses(LocalDateRange.of(DATE_2012_07_27, LocalDate.MAX)), false);
     }
 
-    public void test_encloses_empty() {
+    public void test_encloses_baseEmpty() {
         LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28);
         assertEquals(test.encloses(LocalDateRange.of(DATE_2012_07_27, DATE_2012_07_27)), false);
-        assertEquals(test.encloses(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28)), false);
+        assertEquals(test.encloses(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28)), true);
         assertEquals(test.encloses(LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_29)), false);
         assertEquals(test.encloses(LocalDateRange.of(DATE_2012_07_27, LocalDate.MAX)), false);
         assertEquals(test.encloses(LocalDateRange.of(DATE_2012_07_28, LocalDate.MAX)), false);
     }
 
-    //-----------------------------------------------------------------------
-    @DataProvider(name = "noOverlap")
-    Object[][] data_noOverlap() {
-        return new Object[][] {
-            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_27, DATE_2012_07_29 },
-            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_29, DATE_2012_07_30 },
-            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_29, DATE_2012_07_29 },
-            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_27, DATE_2012_07_27 },
-            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_28, DATE_2012_07_28 },
-        };
-    }
-
-    @Test(dataProvider = "noOverlap")
-    public void test_noOverlap(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
-        LocalDateRange test1 = LocalDateRange.of(start1, end1);
-        LocalDateRange test2 = LocalDateRange.of(start2, end2);
-        assertEquals(test1.overlaps(test2), false);
-    }
-
-    @Test(dataProvider = "noOverlap", expectedExceptions = DateTimeException.class)
-    public void test_noOverlap_intersection(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
-        LocalDateRange test1 = LocalDateRange.of(start1, end1);
-        LocalDateRange test2 = LocalDateRange.of(start2, end2);
-        test1.intersection(test2);
-    }
-
-    @Test(dataProvider = "noOverlap", expectedExceptions = DateTimeException.class)
-    public void test_noOverlap_union(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
-        LocalDateRange test1 = LocalDateRange.of(start1, end1);
-        LocalDateRange test2 = LocalDateRange.of(start2, end2);
-        test1.union(test2);
-    }
-
-    @Test(dataProvider = "noOverlap")
-    public void test_noOverlap_reverse(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
-        LocalDateRange test1 = LocalDateRange.of(start1, end1);
-        LocalDateRange test2 = LocalDateRange.of(start2, end2);
-        assertEquals(test2.overlaps(test1), false);
-    }
-
-    @Test(dataProvider = "noOverlap", expectedExceptions = DateTimeException.class)
-    public void test_noOverlap_reverse_intersection(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
-        LocalDateRange test1 = LocalDateRange.of(start1, end1);
-        LocalDateRange test2 = LocalDateRange.of(start2, end2);
-        test2.intersection(test1);
-    }
-
-    @Test(dataProvider = "noOverlap", expectedExceptions = DateTimeException.class)
-    public void test_noOverlap_reverse_union(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
-        LocalDateRange test1 = LocalDateRange.of(start1, end1);
-        LocalDateRange test2 = LocalDateRange.of(start2, end2);
-        test2.union(test1);
-    }
-
-    public void test_overlaps_same() {
-        LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_31);
-        assertEquals(test.overlaps(test), true);
-    }
-
-    public void test_overlaps_empty() {
-        LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_30);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_27, DATE_2012_07_27)), false);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28)), true);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_29)), true);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_30, DATE_2012_07_30)), false);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_31, DATE_2012_07_31)), false);
-    }
-
-    public void test_overlaps_baseEmpty() {
+    public void test_abuts_baseEmpty() {
         LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_27, DATE_2012_07_27)), false);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28)), false);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_29)), false);
-        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_30)), true);
+        assertEquals(test.abuts(LocalDateRange.of(DATE_2012_07_27, DATE_2012_07_27)), false);
+        assertEquals(test.abuts(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28)), false);
+        assertEquals(test.abuts(LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_29)), false);
+        assertEquals(test.abuts(LocalDateRange.of(DATE_2012_07_27, DATE_2012_07_28)), true);
+        assertEquals(test.abuts(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_29)), true);
     }
+
+    public void test_isConnected_baseEmpty() {
+        LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28);
+        assertEquals(test.isConnected(LocalDateRange.of(DATE_2012_07_27, DATE_2012_07_27)), false);
+        assertEquals(test.isConnected(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28)), true);
+        assertEquals(test.isConnected(LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_29)), false);
+    }
+
+    //-----------------------------------------------------------------------
+//    @DataProvider(name = "noOverlap")
+//    Object[][] data_noOverlap() {
+//        return new Object[][] {
+//            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_27, DATE_2012_07_29 },
+//            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_29, DATE_2012_07_30 },
+//            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_29, DATE_2012_07_29 },
+//            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_27, DATE_2012_07_27 },
+//            { DATE_2012_07_01, DATE_2012_07_27, DATE_2012_07_28, DATE_2012_07_28 },
+//        };
+//    }
+//
+//    @Test(dataProvider = "noOverlap")
+//    public void test_noOverlap(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
+//        LocalDateRange test1 = LocalDateRange.of(start1, end1);
+//        LocalDateRange test2 = LocalDateRange.of(start2, end2);
+//        assertEquals(test1.overlaps(test2), false);
+//    }
+//
+//    @Test(dataProvider = "noOverlap", expectedExceptions = DateTimeException.class)
+//    public void test_noOverlap_intersection(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
+//        LocalDateRange test1 = LocalDateRange.of(start1, end1);
+//        LocalDateRange test2 = LocalDateRange.of(start2, end2);
+//        test1.intersection(test2);
+//    }
+//
+//    @Test(dataProvider = "noOverlap", expectedExceptions = DateTimeException.class)
+//    public void test_noOverlap_union(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
+//        LocalDateRange test1 = LocalDateRange.of(start1, end1);
+//        LocalDateRange test2 = LocalDateRange.of(start2, end2);
+//        test1.union(test2);
+//    }
+//
+//    @Test(dataProvider = "noOverlap")
+//    public void test_noOverlap_reverse(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
+//        LocalDateRange test1 = LocalDateRange.of(start1, end1);
+//        LocalDateRange test2 = LocalDateRange.of(start2, end2);
+//        assertEquals(test2.overlaps(test1), false);
+//    }
+//
+//    @Test(dataProvider = "noOverlap", expectedExceptions = DateTimeException.class)
+//    public void test_noOverlap_reverse_intersection(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
+//        LocalDateRange test1 = LocalDateRange.of(start1, end1);
+//        LocalDateRange test2 = LocalDateRange.of(start2, end2);
+//        test2.intersection(test1);
+//    }
+//
+//    @Test(dataProvider = "noOverlap", expectedExceptions = DateTimeException.class)
+//    public void test_noOverlap_reverse_union(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
+//        LocalDateRange test1 = LocalDateRange.of(start1, end1);
+//        LocalDateRange test2 = LocalDateRange.of(start2, end2);
+//        test2.union(test1);
+//    }
+//
+//    public void test_overlaps_same() {
+//        LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_31);
+//        assertEquals(test.overlaps(test), true);
+//    }
+//
+//    public void test_overlaps_inputEmpty() {
+//        LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_30);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_27, DATE_2012_07_27)), false);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28)), true);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_29)), true);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_30, DATE_2012_07_30)), false);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_31, DATE_2012_07_31)), false);
+//    }
+//
+//    public void test_overlaps_baseEmpty() {
+//        LocalDateRange test = LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_27, DATE_2012_07_27)), false);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_28)), false);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_29)), false);
+//        assertEquals(test.overlaps(LocalDateRange.of(DATE_2012_07_28, DATE_2012_07_30)), true);
+//    }
 
     //-----------------------------------------------------------------------
     @DataProvider(name = "intersection")
     Object[][] data_intersection() {
         return new Object[][] {
+            // adjacent
+            { DATE_2012_07_01, DATE_2012_07_28, DATE_2012_07_28, DATE_2012_07_30, DATE_2012_07_28, DATE_2012_07_28 },
+            // adjacent empty
+            { DATE_2012_07_01, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_30 },
             // overlap
             { DATE_2012_07_01, DATE_2012_07_29, DATE_2012_07_28, DATE_2012_07_30, DATE_2012_07_28, DATE_2012_07_29 },
             // encloses
@@ -553,7 +598,7 @@ public class TestLocalDateRange {
         LocalDateRange test1 = LocalDateRange.of(start1, end1);
         LocalDateRange test2 = LocalDateRange.of(start2, end2);
         LocalDateRange expected = LocalDateRange.of(expStart, expEnd);
-        assertTrue(test1.overlaps(test2));
+        assertTrue(test1.isConnected(test2));
         assertEquals(test1.intersection(test2), expected);
     }
 
@@ -564,27 +609,15 @@ public class TestLocalDateRange {
         LocalDateRange test1 = LocalDateRange.of(start1, end1);
         LocalDateRange test2 = LocalDateRange.of(start2, end2);
         LocalDateRange expected = LocalDateRange.of(expStart, expEnd);
-        assertTrue(test2.overlaps(test1));
+        assertTrue(test2.isConnected(test1));
         assertEquals(test2.intersection(test1), expected);
     }
 
-    @DataProvider(name = "intersectionBad")
-    Object[][] data_intersectionBad() {
-        return new Object[][] {
-            // adjacent
-            { DATE_2012_07_01, DATE_2012_07_28, DATE_2012_07_28, DATE_2012_07_30, DATE_2012_07_28, DATE_2012_07_28 },
-            // adjacent empty
-            { DATE_2012_07_01, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_30 },
-        };
-    }
-
-    @Test(dataProvider = "intersectionBad", expectedExceptions = DateTimeException.class)
-    public void test_intersectionBad(
-            LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2, LocalDate expStart, LocalDate expEnd) {
-
-        LocalDateRange test1 = LocalDateRange.of(start1, end1);
-        LocalDateRange test2 = LocalDateRange.of(start2, end2);
-        assertFalse(test1.overlaps(test2));
+    @Test(expectedExceptions = DateTimeException.class)
+    public void test_intersectionBad() {
+        LocalDateRange test1 = LocalDateRange.of(DATE_2012_07_01, DATE_2012_07_28);
+        LocalDateRange test2 = LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_30);
+        assertEquals(test1.isConnected(test2), false);
         test1.intersection(test2);
     }
 
@@ -597,6 +630,10 @@ public class TestLocalDateRange {
     @DataProvider(name = "union")
     Object[][] data_union() {
         return new Object[][] {
+            // adjacent
+            { DATE_2012_07_01, DATE_2012_07_28, DATE_2012_07_28, DATE_2012_07_30, DATE_2012_07_01, DATE_2012_07_30 },
+            // adjacent empty
+            { DATE_2012_07_01, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_01, DATE_2012_07_30 },
             // overlap
             { DATE_2012_07_01, DATE_2012_07_29, DATE_2012_07_28, DATE_2012_07_30, DATE_2012_07_01, DATE_2012_07_30 },
             // encloses
@@ -613,7 +650,7 @@ public class TestLocalDateRange {
         LocalDateRange test1 = LocalDateRange.of(start1, end1);
         LocalDateRange test2 = LocalDateRange.of(start2, end2);
         LocalDateRange expected = LocalDateRange.of(expStart, expEnd);
-        assertTrue(test1.overlaps(test2));
+        assertTrue(test1.isConnected(test2));
         assertEquals(test1.union(test2), expected);
     }
 
@@ -624,27 +661,15 @@ public class TestLocalDateRange {
         LocalDateRange test1 = LocalDateRange.of(start1, end1);
         LocalDateRange test2 = LocalDateRange.of(start2, end2);
         LocalDateRange expected = LocalDateRange.of(expStart, expEnd);
-        assertTrue(test2.overlaps(test1));
+        assertTrue(test2.isConnected(test1));
         assertEquals(test2.union(test1), expected);
     }
 
-    @DataProvider(name = "unionBad")
-    Object[][] data_unionBad() {
-        return new Object[][] {
-            // adjacent
-            { DATE_2012_07_01, DATE_2012_07_28, DATE_2012_07_28, DATE_2012_07_30, DATE_2012_07_01, DATE_2012_07_30 },
-            // adjacent empty
-            { DATE_2012_07_01, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_30, DATE_2012_07_01, DATE_2012_07_30 },
-        };
-    }
-
-    @Test(dataProvider = "unionBad", expectedExceptions = DateTimeException.class)
-    public void test_unionBad(
-            LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2, LocalDate expStart, LocalDate expEnd) {
-
-        LocalDateRange test1 = LocalDateRange.of(start1, end1);
-        LocalDateRange test2 = LocalDateRange.of(start2, end2);
-        assertFalse(test1.overlaps(test2));
+    @Test(expectedExceptions = DateTimeException.class)
+    public void test_unionBad() {
+        LocalDateRange test1 = LocalDateRange.of(DATE_2012_07_01, DATE_2012_07_28);
+        LocalDateRange test2 = LocalDateRange.of(DATE_2012_07_29, DATE_2012_07_30);
+        assertFalse(test1.isConnected(test2));
         test1.union(test2);
     }
 
@@ -840,5 +865,42 @@ public class TestLocalDateRange {
         assertEquals(a.equals(""), false);
         assertEquals(a.hashCode() == a2.hashCode(), true);
     }
+
+    public void guava() {
+        Range<Integer> range = Range.closedOpen(27, 30);
+        assertEquals(range.contains(26), false);
+        assertEquals(range.contains(27), true);
+        assertEquals(range.contains(28), true);
+        assertEquals(range.contains(29), true);
+        assertEquals(range.contains(30), false);
+        
+        assertEquals(range.encloses(Range.closedOpen(26, 26)), false);
+        assertEquals(range.encloses(Range.closedOpen(27, 27)), true);
+        assertEquals(range.encloses(Range.closedOpen(28, 28)), true);
+        assertEquals(range.encloses(Range.closedOpen(29, 29)), true);
+        assertEquals(range.encloses(Range.closedOpen(30, 30)), true);
+        
+        assertEquals(range.isConnected(Range.closedOpen(26, 26)), false);
+        assertEquals(range.isConnected(Range.closedOpen(26, 27)), true);
+        assertEquals(range.isConnected(Range.closedOpen(27, 27)), true);
+        assertEquals(range.isConnected(Range.closedOpen(30, 30)), true);
+        assertEquals(range.isConnected(Range.closedOpen(30, 31)), true);
+        assertEquals(range.isConnected(Range.closedOpen(31, 32)), false);
+        assertEquals(range.isConnected(range), true);
+
+        assertEquals(range.intersection(range), range);
+        
+        Range<Integer> empty = Range.closedOpen(27, 27);
+        assertEquals(empty.contains(27), false);
+        assertEquals(empty.encloses(Range.closedOpen(27, 27)), true);
+        assertEquals(empty.isConnected(Range.closedOpen(26, 26)), false);
+        assertEquals(empty.isConnected(Range.closedOpen(27, 27)), true);
+        assertEquals(empty.isConnected(Range.closedOpen(28, 28)), false);
+        assertEquals(empty.isConnected(empty), true);
+    }
+    // TODO: test span()
+    // TODO: test MAX/MIN
+    // TODO: add overlaps?
+    // TODO: Interval consistency
 
 }

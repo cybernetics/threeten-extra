@@ -154,8 +154,8 @@ public final class LocalDateRange implements Serializable {
 
     //-----------------------------------------------------------------------
     /**
-     * Obtains an instance of {@code LocalDateRange} from a text string such as
-     * {@code 2007-12-03/2007-12-04}.
+     * Obtains an instance of {@code LocalDateRange} from a half-open text
+     * string such as {@code 2007-12-03/2007-12-04}.
      * <p>
      * The string must consist of one of the following three formats:
      * <ul>
@@ -177,12 +177,12 @@ public final class LocalDateRange implements Serializable {
             if (text.charAt(i) == '/') {
                 char firstChar = text.charAt(0);
                 if (firstChar == 'P' || firstChar == 'p') {
-                    // duration followed by date
+                    // period followed by date
                     Period duration = Period.parse(text.subSequence(0, i));
                     LocalDate end = LocalDate.parse(text.subSequence(i + 1, text.length()));
                     return LocalDateRange.of(end.minus(duration), end);
                 } else {
-                    // date followed by date or duration
+                    // date followed by date or period
                     LocalDate start = LocalDate.parse(text.subSequence(0, i));
                     if (i + 1 < text.length()) {
                         char c = text.charAt(i + 1);
@@ -329,7 +329,7 @@ public final class LocalDateRange implements Serializable {
     /**
      * Checks if this range contains the specified date.
      * <p>
-     * This checks if the specified date is contained by this range.
+     * This checks if the specified date is within the bounds of this range.
      * If this range has an unbounded start then {@code contains(LocalDate#MIN)} returns true.
      * If this range has an unbounded end then {@code contains(LocalDate#MAX)} returns true.
      * If this range is empty then this method always returns false.
@@ -338,69 +338,85 @@ public final class LocalDateRange implements Serializable {
      * @return true if this range contains the date
      */
     public boolean contains(LocalDate date) {
+        Objects.requireNonNull(date, "date");
         return start.compareTo(date) <= 0 && (date.compareTo(end) < 0 || isUnboundedEnd());
     }
 
     /**
      * Checks if this range contains all dates in the specified range.
      * <p>
-     * This checks if the specified range is fully enclosed by this range.
-     * The result is true if the start of the specified range is contained in this range,
-     * and the end is less than or equal to the end of this range.
-     * If this range is empty then this method always returns false.
+     * This checks if the bounds of the specified range are within the bounds of this range.
+     * An empty range encloses itself.
      * 
      * @param other  the other range to check for, not null
      * @return true if this range contains all dates in the other range
      */
     public boolean encloses(LocalDateRange other) {
-        return contains(other.start) && other.end.compareTo(end) <= 0;
-    }
-
-    /**
-     * Checks if this range overlaps the specified range.
-     * <p>
-     * This checks if the two ranges overlap.
-     * The result is true if the the two ranges have at least one date in common.
-     * Empty ranges are treated as though they were dates and checked using {@link #contains(LocalDate)}.
-     * For example, 2014-06-20/2014-06-25 overlaps  2014-06-20/2014-06-20 but not 2014-06-25/2014-06-25.
-     * 
-     * @param other  the other range to check for, not null
-     * @return true if this range contains all dates in the other range
-     */
-    public boolean overlaps(LocalDateRange other) {
-        return (start.compareTo(other.end) < 0 && other.start.compareTo(end) < 0) ||
-                (isEmpty() && other.contains(start)) ||
-                (other.isEmpty() && contains(other.getStart()));
+        Objects.requireNonNull(other, "other");
+        return start.compareTo(other.start) <= 0 && other.end.compareTo(end) <= 0;
     }
 
     /**
      * Checks if this range abuts the specified range.
      * <p>
      * The result is true if the end of this range is the start of the other, or vice versa.
-     * An empty range does not abut an equal empty range.
+     * An empty range does not abut itself.
      *
      * @param other  the other range, not null
      * @return true if this range abuts the other range
      */
     public boolean abuts(LocalDateRange other) {
+        Objects.requireNonNull(other, "other");
         return end.equals(other.start) ^ start.equals(other.end);
     }
 
+    /**
+     * Checks if this range is connected to the specified range.
+     * <p>
+     * The result is true if the two ranges have an enclosed range in common, even if that range is empty.
+     * An empty range is connected to itself.
+     *
+     * @param other  the other range, not null
+     * @return true if this is connected to the other range
+     */
+    public boolean isConnected(LocalDateRange other) {
+        Objects.requireNonNull(other, "other");
+        return this.equals(other) || (start.compareTo(other.end) <= 0 && other.start.compareTo(end) <= 0);
+    }
+
+//    /**
+//     * Checks if this range overlaps the specified range.
+//     * <p>
+//     * This checks if the two ranges overlap.
+//     * The result is true if the the two ranges have at least one date in common.
+//     * Empty ranges are treated as though they were dates and checked using {@link #contains(LocalDate)}.
+//     * For example, 2014-06-20/2014-06-25 overlaps  2014-06-20/2014-06-20 but not 2014-06-25/2014-06-25.
+//     * 
+//     * @param other  the other range to check for, not null
+//     * @return true if this range contains all dates in the other range
+//     */
+//    public boolean overlaps(LocalDateRange other) {
+//        return (start.compareTo(other.end) < 0 && other.start.compareTo(end) < 0) ||
+//                (isEmpty() && other.contains(start)) ||
+//                (other.isEmpty() && contains(other.getStart()));
+//    }
+
     //-----------------------------------------------------------------------
+
     /**
      * Calculates the range that is the intersection of this range and the specified range.
      * <p>
      * This finds the intersection of two ranges.
-     * This returns an exception if the two ranges do not {@linkplain #overlaps(LocalDateRange) overlap}.
+     * This throws an exception if the two ranges are not {@linkplain #isConnected(LocalDateRange) connected}.
      * 
      * @param other  the other range to check for, not null
      * @return the range that is the intersection of the two ranges
-     * @throws DateTimeException if the ranges do not overlap
+     * @throws DateTimeException if the ranges do not connect
      */
     public LocalDateRange intersection(LocalDateRange other) {
         Objects.requireNonNull(other, "other");
-        if (overlaps(other) == false) {
-            throw new DateTimeException("Ranges do not overlap: " + this + " and " + other);
+        if (isConnected(other) == false) {
+            throw new DateTimeException("Ranges do not connect: " + this + " and " + other);
         }
         int cmpStart = start.compareTo(other.start);
         int cmpEnd = end.compareTo(other.end);
@@ -419,16 +435,16 @@ public final class LocalDateRange implements Serializable {
      * Calculates the range that is the union of this range and the specified range.
      * <p>
      * This finds the union of two ranges.
-     * This returns an exception if the two ranges do not {@linkplain #overlaps(LocalDateRange) overlap}.
+     * This throws an exception if the two ranges are not {@linkplain #isConnected(LocalDateRange) connected}.
      * 
      * @param other  the other range to check for, not null
      * @return the range that is the union of the two ranges
-     * @throws DateTimeException if the ranges do not overlap
+     * @throws DateTimeException if the ranges do not connect
      */
     public LocalDateRange union(LocalDateRange other) {
         Objects.requireNonNull(other, "other");
-        if (overlaps(other) == false) {
-            throw new DateTimeException("Ranges do not overlap: " + this + " and " + other);
+        if (isConnected(other) == false) {
+            throw new DateTimeException("Ranges do not connect: " + this + " and " + other);
         }
         int cmpStart = start.compareTo(other.start);
         int cmpEnd = end.compareTo(other.end);
@@ -441,6 +457,24 @@ public final class LocalDateRange implements Serializable {
             LocalDate newEnd = (cmpEnd <= 0 ? other.end : end);
             return LocalDateRange.of(newStart, newEnd);
         }
+    }
+
+    /**
+     * Calculates the smallest range that encloses this range and the specified range.
+     * <p>
+     * The result of this method will {@linkplain #encloses(LocalDateRange) enclose}
+     * this range and the specified range.
+     * 
+     * @param other  the other range to check for, not null
+     * @return the range that spans the two ranges
+     */
+    public LocalDateRange span(LocalDateRange other) {
+        Objects.requireNonNull(other, "other");
+        int cmpStart = start.compareTo(other.start);
+        int cmpEnd = end.compareTo(other.end);
+        LocalDate newStart = (cmpStart >= 0 ? other.start : start);
+        LocalDate newEnd = (cmpEnd <= 0 ? other.end : end);
+        return LocalDateRange.of(newStart, newEnd);
     }
 
     //-----------------------------------------------------------------------
